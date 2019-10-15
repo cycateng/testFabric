@@ -36,8 +36,7 @@ type SimpleChaincode struct {
 }
 
 type Log struct {
-	Id　string `json:"id"`
-	Data　string　`json:"data"`
+	Data string `json:"data"`
 }
 
 func (t *SimpleChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
@@ -130,14 +129,11 @@ func (t *SimpleChaincode) query(stub shim.ChaincodeStubInterface, args []string)
 }
 
 func (t *SimpleChaincode) add(stub shim.ChaincodeStubInterface, args []string) pb.Response {
-	var A string // Entities
-	var err error
-
 	if len(args) != 2 {
 		return shim.Error("Incorrect number of arguments. Expecting 2")
 	}
 
-	var log = Log{Id: args[0], Data: args[1]}
+	var log = Log{Data: args[1]}
 
 	logAsByte, _ := json.Marshal(log)
 	stub.PutState(args[0], logAsByte)
@@ -145,8 +141,11 @@ func (t *SimpleChaincode) add(stub shim.ChaincodeStubInterface, args []string) p
 	return shim.Success(nil)
 }
 
-func (t *SimpleChaincode) init(stub shim.ChaincodeStubInterface, args []string) pb.Response {
-	logs := Log{Id: "0", Data: "init data"}
+func (t *SimpleChaincode) init(stub shim.ChaincodeStubInterface) pb.Response {
+	log := Log{Data: "init data"}
+
+	logAsByte, _ := json.Marshal(log)
+	stub.PutState("0", logAsByte)
 
 	return shim.Success(nil)
 }
