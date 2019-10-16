@@ -24,8 +24,10 @@ package main
 
 import (
 	"fmt"
-	//"strconv"
+	"strconv"
 	"encoding/json"
+	"bytes"
+	"time"
 
 	"github.com/hyperledger/fabric/core/chaincode/shim"
 	pb "github.com/hyperledger/fabric/protos/peer"
@@ -59,6 +61,8 @@ func (t *SimpleChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 		return t.add(stub, args)
 	} else if function == "init" {
 		return t.init(stub)
+	} else if function == "history" {
+		return t.history(stub, args)
 	}
 
 	return shim.Error("Invalid invoke function name. Expecting \"invoke\" \"delete\" \"query\"")
@@ -148,6 +152,65 @@ func (t *SimpleChaincode) init(stub shim.ChaincodeStubInterface) pb.Response {
 	stub.PutState("0", logAsByte)
 
 	return shim.Success(nil)
+}
+
+func (t *SimpleChaincode) history(stub shim.ChaincodeStubInterface, args []string) pb.Response {
+	if len(args) < 1 {
+		return shim.Error("Incorrect number of arguments. Expecting 1")
+	}
+
+	Id := args[0]
+	resultsIterator, err := stub.GetHistoryForKey(Id)
+	if err != nil {
+		return shim.Error(err.Error())
+	}
+	defer resultsIterator.Close()
+
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+
+	bArrayMemberAlreadyWritten := false
+	for resultsIterator.HasNext() {
+		response, err := resultsIterator.Next()
+		if err != nil {
+				return shim.Error(err.Error())
+		}
+		// Add a comma before array members, suppress it for the first array member
+		if bArrayMemberAlreadyWritten == true {
+				buffer.WriteString(",")
+		}
+		buffer.WriteString("{\"TxId\":")
+		buffer.WriteString("\"")
+		buffer.WriteString(response.TxId)
+		buffer.WriteString("\"")
+
+		buffer.WriteString(", \"Value\":")
+		// if it was a delete operation on given key, then we need to set the
+		//corresponding value null. Else, we will write the response.Value
+		//as-is (as the Value itself a JSON)
+		if response.IsDelete {
+				buffer.WriteString("null")
+		} else {
+				buffer.WriteString(string(response.Value))
+		}
+
+		buffer.WriteString(", \"Timestamp\":")
+		buffer.WriteString("\"")
+		buffer.WriteString(time.Unix(response.Timestamp.Seconds, int64(response.Timestamp.Nanos)).String())
+		buffer.WriteString("\"")
+
+		buffer.WriteString(", \"IsDelete\":")
+		buffer.WriteString("\"")
+		buffer.WriteString(strconv.FormatBool(response.IsDelete))
+		buffer.WriteString("\"")
+
+		buffer.WriteString("}")
+		bArrayMemberAlreadyWritten = true
+	}
+	buffer.WriteString("]")
+
+	fmt.Printf("- History returning:\n%s\n", buffer.String())
+	return shim.Success(buffer.Bytes())
 }
 
 func main() {
