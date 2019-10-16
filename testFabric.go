@@ -179,12 +179,10 @@ func (t *SimpleChaincode) history(stub shim.ChaincodeStubInterface, args []strin
 		if bArrayMemberAlreadyWritten == true {
 				buffer.WriteString(",")
 		}
-		buffer.WriteString("{\"TxId\":")
-		buffer.WriteString("\"")
+		buffer.WriteString("{TxId: ")
 		buffer.WriteString(response.TxId)
-		buffer.WriteString("\"")
 
-		buffer.WriteString(", \"Value\":")
+		buffer.WriteString(", Value: ")
 		// if it was a delete operation on given key, then we need to set the
 		//corresponding value null. Else, we will write the response.Value
 		//as-is (as the Value itself a JSON)
@@ -194,15 +192,11 @@ func (t *SimpleChaincode) history(stub shim.ChaincodeStubInterface, args []strin
 				buffer.WriteString(string(response.Value))
 		}
 
-		buffer.WriteString(", \"Timestamp\":")
-		buffer.WriteString("\"")
+		buffer.WriteString(", Timestamp: ")
 		buffer.WriteString(time.Unix(response.Timestamp.Seconds, int64(response.Timestamp.Nanos)).String())
-		buffer.WriteString("\"")
 
-		buffer.WriteString(", \"IsDelete\":")
-		buffer.WriteString("\"")
+		buffer.WriteString(", IsDelete: ")
 		buffer.WriteString(strconv.FormatBool(response.IsDelete))
-		buffer.WriteString("\"")
 
 		buffer.WriteString("}")
 		bArrayMemberAlreadyWritten = true
